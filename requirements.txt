@@ -1,0 +1,6 @@
+sentinelsat
+snappy
+pandas
+yaml
+glob3
+shapely
