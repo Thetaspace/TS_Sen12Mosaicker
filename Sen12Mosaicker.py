@@ -44,7 +44,7 @@ import os
 import glob
 from src.S1Processor import S1Processor
 
-logger = logging.getLogger()
+logger = logging.getLogger('LoggerS12Mosaicker')
 logging.basicConfig(level=logging.INFO)
 
 class Sen12Mosaicker():
@@ -119,39 +119,6 @@ class Sen12Mosaicker():
       for s1 in s1_list:
         self.api.download(s1['uuid'], folder_path + '/S1')
 
-
-
-def main():
-
-  conf_yaml = 'config.yaml'
-
-  mosaicker = Sen12Mosaicker(conf_yaml)
-  mosaicker.get_products()
-
-  if len(mosaicker.products_s1) >0 and len(mosaicker.products_s2)>0:
-    logger.info('\t{0} S1 and {1} products found'.format(len(mosaicker.products_s1), len(mosaicker.products_s2)))
-  else:
-    logger.info('\tEither S1 or S2 queries returned no products')
-    return 
-
-  mosaicker.get_intervals()
-  logger.info('\tTrying to list data to form time series of {0} points in time'.format(len(mosaicker.ts_intervals))) 
-
-  mosaicker.get_scenes_todownload()
-  logger.info('\tDownloading (or at least trying to) data to form time series of {0} points in time'.format(len(mosaicker.list_ts_pairs)))
-
-  mosaicker.download_scenes()
-  logger.info('\tfinished downloading')
-
-  s1_files = glob.glob(mosaicker.output_folder + '/*/S1/*.zip')
-  
-  for s1_zip in s1_files:
-    s1_proc = S1Processor(s1_zip, self.footprint)
-    s1_proc.process()
-
-
-if __name__ == "__main__":
-    main()
 
 
 
