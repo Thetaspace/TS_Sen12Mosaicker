@@ -1,6 +1,7 @@
 #!/usr/bin/python
 #-*- coding: utf-8 -*-
 
+
 from sentinelsat import SentinelAPI, read_geojson, geojson_to_wkt
 from datetime import date
 import datetime
@@ -11,6 +12,12 @@ import yaml
 
 import shapely
 from shapely.wkt import loads
+
+import numpy as np
+import rasterio
+from rasterio.mask import mask
+import geopandas as gpd
+from shapely.geometry import box
 
 def authenticate_oah(creds_json):
     """
@@ -134,3 +141,47 @@ def get_products_chunks(products_df, ts_intervals):
     for (min_date, max_date) in ts_intervals:
         ts_products_lists.append(products_df[(products_df['beginposition']<=max_date) & (products_df['beginposition']>=min_date)])
     return ts_products_lists
+
+
+
+def getFeatures(gdf):
+    """Function to parse features from GeoDataFrame in such a manner that rasterio wants them"""
+    import json
+    return [json.loads(gdf.to_json())['features'][0]['geometry']]
+
+def clip_to_aoi(path_jp2, footprint):
+    dataset = rasterio.open(path_jp2)
+    fp = shapely.wkt.loads(footprint)
+    
+    # create new footprint from the intersection of raster and footprint
+    dataset_bbox = dataset.bounds
+    geo_dataset = gpd.GeoDataFrame({'geometry': box(dataset_bbox[0], dataset_bbox[1], dataset_bbox[2], dataset_bbox[3])}, index=[0], crs=dataset.crs)
+    geo_fp = gpd.GeoDataFrame({'geometry': box(fp.bounds[0],fp.bounds[1],fp.bounds[2],fp.bounds[3])}, index=[0], crs={'init':'epsg:4326'})
+    geo_dataset = geo_dataset.to_crs(crs={'init':'epsg:4326'})
+    coords = getFeatures(geo_dataset.intersection(geo_fp).to_crs(dataset.crs.data))
+    
+    rect,g_rect = mask(dataset, coords, all_touched=True, crop=True)
+    
+    out_meta = dataset.meta.copy()
+    out_meta.update({"driver": "GTiff",
+            "height": rect.shape[1],
+            "width": rect.shape[2],
+            "transform": g_rect}
+        )
+    output_path = path_jp2[:-4] + '_clipped.tif'
+    with rasterio.open(output_path, 'w', **out_meta) as dst:
+        dst.write(rect.astype(np.uint16))      
+    return output_path
+
+
+def merge_rasters(list_clipped_rasters_paths, output_folder, suffix):
+    rec, rec_g = merge(list_clipped_rasters_paths)
+    out_meta = rasterio.open(list_clipped_rasters_paths[0]).meta.copy()
+    out_meta.update({"driver": "GTiff",
+            "height": rec.shape[1],
+            "width": rec.shape[2],
+            "transform": g_rec})
+    
+    output_path = output_folder + 'Mosaic_{0}.tif'.format(suffix)
+    with rasterio.open(output_path, 'w', **out_meta) as dst:
+        dst.write(rect.astype(np.uint16))   

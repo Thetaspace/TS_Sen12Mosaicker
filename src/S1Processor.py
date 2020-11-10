@@ -12,15 +12,22 @@ logger = logging.getLogger('S1ProcessorLogger')
 logging.basicConfig(level=logging.INFO)
 
 class S1Processor():
-    def __init__(self, zip_path, wkt):
+    def __init__(self, zip_path, footprint):
         logger.info('Instanciating S1 processor for {0}'.format(zip_path))
 
-        self.wkt = wkt
+        self.footprint = footprint
         self.zip_path = zip_path
         self.safe_folder = self.dir_path = self.basename = None
         self.pols = None
 
     def unzip(self):
+
+        ######
+
+
+
+
+        ######
         self.dir_path = os.path.dirname(self.zip_path)
         self.basename = os.path.basename(self.zip_path)[:-4]
         self.safe_folder = os.path.join(self.dir_path, self.basename) + '.SAFE'
@@ -114,7 +121,7 @@ class S1Processor():
     def subset(self, source):
         logger.info('\tClipping to AOI')
         parameters = HashMap()
-        parameters.put('geoRegion', self.wkt)
+        parameters.put('geoRegion', self.footprint)
         output = GPF.createProduct('Subset', parameters, source)
         return output
 
@@ -129,6 +136,7 @@ class S1Processor():
 
     def process(self):
 
+
         self.unzip()
         self.get_meta()
 
@@ -139,7 +147,7 @@ class S1Processor():
         tercorrected = self.terrain_correction(calibrated)
 
         # subset here
-        if self.wkt:
+        if self.footprint:
             tercorrected = self.subset(tercorrected)
 
         scaled_db = self.scale_db(tercorrected)
