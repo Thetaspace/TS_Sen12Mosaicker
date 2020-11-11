@@ -16,6 +16,7 @@ from shapely.wkt import loads
 import numpy as np
 import rasterio
 from rasterio.mask import mask
+from rasterio.merge import merge
 import geopandas as gpd
 from shapely.geometry import box
 
@@ -166,7 +167,8 @@ def clip_to_aoi(path_jp2, footprint):
     out_meta.update({"driver": "GTiff",
             "height": rect.shape[1],
             "width": rect.shape[2],
-            "transform": g_rect}
+            "transform": g_rect,
+            "dtype":"uint16"}
         )
     output_path = path_jp2[:-4] + '_clipped.tif'
     with rasterio.open(output_path, 'w', **out_meta) as dst:
@@ -174,14 +176,17 @@ def clip_to_aoi(path_jp2, footprint):
     return output_path
 
 
-def merge_rasters(list_clipped_rasters_paths, output_folder, suffix):
+def merge_rasters(list_clipped_rasters_paths, output_folder, suffix, dtype):
+
     rec, rec_g = merge(list_clipped_rasters_paths)
     out_meta = rasterio.open(list_clipped_rasters_paths[0]).meta.copy()
     out_meta.update({"driver": "GTiff",
             "height": rec.shape[1],
             "width": rec.shape[2],
-            "transform": g_rec})
+            "transform": rec_g,
+            "dtype": dtype})
     
-    output_path = output_folder + 'Mosaic_{0}.tif'.format(suffix)
+    output_path = output_folder + '/Mosaic_{0}.tif'.format(suffix)
+    print(output_path)
     with rasterio.open(output_path, 'w', **out_meta) as dst:
-        dst.write(rect.astype(np.uint16))   
+        dst.write(rec.astype(dtype))   

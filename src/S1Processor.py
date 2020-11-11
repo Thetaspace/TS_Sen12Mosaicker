@@ -7,33 +7,35 @@ from snappy import GPF
 import os
 import zipfile
 import logging
+import glob
+from src.Processor as Processor
 
 logger = logging.getLogger('S1ProcessorLogger')
 logging.basicConfig(level=logging.INFO)
 
-class S1Processor():
-    def __init__(self, zip_path, footprint):
-        logger.info('Instanciating S1 processor for {0}'.format(zip_path))
+class S1Processor(Processor):
+    def __init__(self, zips_path, footprint):
+        super(S1Processor, self).__init__(zips_path, footprint)
+        logger.info('Instanciating S1 processor for S1 files in {0}'.format(self.zips_path))
 
-        self.footprint = footprint
-        self.zip_path = zip_path
-        self.safe_folder = self.dir_path = self.basename = None
-        self.pols = None
+        self.suffix = 'S1'
+        self.dtype = np.float32
+        self.safe_folders = []
+        self.basenames = []
+        self.pols = []
+        self.polarizations = []
 
     def unzip(self):
 
-        ######
+        for zip_file in glob.glob(self.zips_path + '/S1*.zip'):
+                    
+            basename = os.path.basename(zip_file)[:-4]
+            self.basenames.append(basename)
+            self.safe_folders.append(os.path.join(self.zips_path, basename) + '.SAFE')
 
+            with zipfile.ZipFile(zip_file, 'r') as f:
+                f.extractall(self.zips_path)   
 
-
-
-        ######
-        self.dir_path = os.path.dirname(self.zip_path)
-        self.basename = os.path.basename(self.zip_path)[:-4]
-        self.safe_folder = os.path.join(self.dir_path, self.basename) + '.SAFE'
-               
-        with zipfile.ZipFile(self.zip_path, 'r') as f:
-            f.extractall(self.dir_path)
 
     def apply_orbit_file(self, source):
         logger.info('\tApplying orbit file')
@@ -43,21 +45,24 @@ class S1Processor():
         return output
 
     def get_meta(self):
-        modestamp = self.safe_folder.split("_")[1]
-        productstamp = self.safe_folder.split("_")[2]
-        polstamp = self.safe_folder.split("_")[3]
-        self.polarization = polstamp[2:4]
+        for i in range(len(self.safe_folders)):
+            modestamp = self.safe_folders[i].split("_")[1]
+            productstamp = self.safe_folders[i].split("_")[2]
+            polstamp = self.safe_folders[i].split("_")[3]
+            polarization = polstamp[2:4]
+            self.polarizations.append(polarization)
 
-        if self.polarization == 'DV':
-            self.pols = 'VH,VV'
-        elif self.polarization == 'DH':
-            self.pols = 'HH,HV'
-        elif self.polarization == 'SH' or polarization == 'HH':
-            self.pols = 'HH'
-        elif self.polarization == 'SV':
-            self.pols = 'VV'
-        else:
-            logger.info("Polarization error!")
+            if polarization == 'DV':
+                self.pols.append('VH,VV')
+            elif polarization == 'DH':
+                self.pols.append('HH,HV')
+            elif polarization == 'SH' or polarization == 'HH':
+                self.pols.append('HH')
+            elif polarization == 'SV':
+                self.pols.append('VV')
+            else:
+                self.pols.append('NaN')
+                logger.info("Polarization error!")
 
     def remove_thermal_noise(self, source):
         logger.info('\tThermal noise removal')
@@ -66,23 +71,23 @@ class S1Processor():
         output = GPF.createProduct('ThermalNoiseRemoval', parameters, source)
         return output
 
-    def calibrate(self, source):
+    def calibrate(self, source, pol, polarization):
         logger.info('\tCalibration')
         parameters = HashMap()
         parameters.put('outputSigmaBand', True)
-        parameters.put('selectedPolarisations', self.pols)
+        parameters.put('selectedPolarisations', pol)
         parameters.put('outputImageScaleInDb', False)
         parameters.put('auxFile', 'Product Auxiliary File')
         parameters.put('outputImageInComplex', False)
         parameters.put('outputGammaBand', False)
         parameters.put('outputBetaBand', False)
-        if self.polarization == 'DH':
+        if polarization == 'DH':
             parameters.put('sourceBands', 'Intensity_HH,Intensity_HV')
-        elif self.polarization == 'DV':
+        elif polarization == 'DV':
             parameters.put('sourceBands', 'Intensity_VH,Intensity_VV')
-        elif self.polarization == 'SH' or polarization == 'HH':
+        elif polarization == 'SH' or polarization == 'HH':
             parameters.put('sourceBands', 'Intensity_HH')
-        elif self.polarization == 'SV':
+        elif polarization == 'SV':
             parameters.put('sourceBands', 'Intensity_VV')
         else:
             logger.info("Unknown polarization")
@@ -136,21 +141,23 @@ class S1Processor():
 
     def process(self):
 
-
         self.unzip()
         self.get_meta()
 
-        scene = ProductIO.readProduct(self.safe_folder + '/manifest.safe')   
-        applyorbit = self.apply_orbit_file(scene)
-        thermaremoved = self.remove_thermal_noise(applyorbit)
-        calibrated = self.calibrate(thermaremoved)
-        tercorrected = self.terrain_correction(calibrated)
+        for i, safe_folder in enumerate(self.safe_folders):
 
-        # subset here
-        if self.footprint:
-            tercorrected = self.subset(tercorrected)
+            scene = ProductIO.readProduct(safe_folder + '/manifest.safe')   
+            applyorbit = self.apply_orbit_file(scene)
+            thermaremoved = self.remove_thermal_noise(applyorbit)
+            calibrated = self.calibrate(thermaremoved, self.pols[i], self.polarizations[i])
+            tercorrected = self.terrain_correction(calibrated)
 
-        scaled_db = self.scale_db(tercorrected)
+            # subset here
+            if self.footprint:
+                tercorrected = self.subset(tercorrected)
 
-        output_path = os.path.join(self.dir_path, self.basename) + '_VV_VH_dB.tif'
-        ProductIO.writeProduct(scaled_db, output_path, 'GeoTIFF-BigTIFF')
+            scaled_db = self.scale_db(tercorrected)
+
+            output_path = os.path.join(self.zips_path, self.basenames[i]) + '_VV_VH_dB.tif'
+            ProductIO.writeProduct(scaled_db, output_path, 'GeoTIFF-BigTIFF')
+            self.paths_to_merge.append(output_path)

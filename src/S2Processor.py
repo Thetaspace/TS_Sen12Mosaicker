@@ -8,14 +8,20 @@ import numpy as np
 import shapely.wkt
 import rasterio
 from src.utils import clip_to_aoi
+from src.Processor import Processor
 
 logger = logging.getLogger('S2ProcessorLogger')
 logging.basicConfig(level=logging.INFO)
 
-class S2Processor():
+class S2Processor(Processor):
     def __init__(self, path_S2, footprint):
+        super(S2Processor, self).__init__(path_S2, footprint)
+        logger.info('Instanciating S2 processor for S2 files in {0}'.format(self.zips_path))
+        
+        self.suffix = 'S2'
+        self.dtype = np.uint16
         # The zip files in one S2 folder (of one time series point)
-        self.zip_files = glob.glob(path_S2 + '/S2*.zip')
+        self.zip_files = glob.glob(self.zips_path + '/S2*.zip')
         self.unzip_folders = []
         self.jp2_paths = []
         self.footprint = footprint
@@ -55,9 +61,6 @@ class S2Processor():
         clip_partial = functools.partial(clip_to_aoi, footprint=self.footprint)
         clip_lambda = lambda x: dict(zip(x.keys(), map(clip_partial, x.values())))
 
-        self.clipped_paths = [clip_lambda(jp2_paths) for jp2_paths in self.jp2_paths]
+        self.paths_to_merge = [clip_lambda(jp2_paths) for jp2_paths in self.jp2_paths]
     
-    # merge for each key: red, blue, ... , for each interval/S2 folder
-    def create_mosaic(self):
-
   
