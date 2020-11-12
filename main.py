@@ -49,11 +49,20 @@ def main():
   mosaicker.download_scenes()
   logger.info('\tfinished downloading')
 
-  s1_files = glob.glob(mosaicker.output_folder + '/*/S1/*.zip')
+
+  # Processing all files to form mosaicks for each time step
+  s1_folders = glob.glob(mosaicker.output_folder + '/*/S1')
+  s2_folders = glob.glob(mosaicker.output_folder + '/*/S2')
   
-  for s1_zip in s1_files:
-    s1_proc = S1Processor(s1_zip, self.footprint)
-    s1_proc.process()
+  for i in len(s2_folders):
+    s1_proc = S1Processor(s1_folders[i] self.footprint)
+    s1_proc.process() # the "process" method runs the complete workflow: raster processing, clipping, mosaicking, readings and writings... 
+                      # but of course each step can be executed individually e.g. s1_proc.unzip() or s2_proc.clip_all_to_aoi()  etc. 
+
+    s2_proc = S2Processor(s2_folders[i] self.footprint)
+    s2_proc.process()
+
+    
 
 
 if __name__ == "__main__":

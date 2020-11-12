@@ -63,4 +63,9 @@ class S2Processor(Processor):
 
         self.paths_to_merge = [clip_lambda(jp2_paths) for jp2_paths in self.jp2_paths]
     
+    def process(self):
+        self.unzip_files()
+        self.get_jp2_paths()
+        self.clip_all_to_aoi()
+        self.merge()
   

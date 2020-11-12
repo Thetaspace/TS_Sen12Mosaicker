@@ -167,3 +167,5 @@ class S1Processor(Processor):
             scene.dispose()
             scene.closeIO()
             self.paths_to_merge.append(output_path)
+
+        self.merge()
