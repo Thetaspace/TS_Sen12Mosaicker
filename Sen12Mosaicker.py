@@ -43,6 +43,7 @@ from src.utils import *
 import os
 import glob
 from src.S1Processor import S1Processor
+from src.S2Processor import S2Processor
 
 logger = logging.getLogger('LoggerS12Mosaicker')
 logging.basicConfig(level=logging.INFO)

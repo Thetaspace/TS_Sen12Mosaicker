@@ -22,6 +22,7 @@ import logging
 from Sen12Mosaicker import Sen12Mosaicker
 import glob
 from src.S1Processor import S1Processor
+from src.S2Processor import S2Processor
 
 logger = logging.getLogger('MainLogger')
 logging.basicConfig(level=logging.INFO)
