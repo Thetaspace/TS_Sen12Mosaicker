@@ -161,7 +161,9 @@ def clip_to_aoi(path_jp2, footprint):
     geo_dataset = geo_dataset.to_crs(crs={'init':'epsg:4326'})
     coords = getFeatures(geo_dataset.intersection(geo_fp).to_crs(dataset.crs.data))
     
-    rect,g_rect = mask(dataset, coords, all_touched=True, crop=True)
+    _,g_rect = mask(dataset, coords, all_touched=True, crop=True)
+    windo = rasterio.features.geometry_window(dataset, coords)
+    rect = dataset.read(window=windo)
     
     out_meta = dataset.meta.copy()
     out_meta.update({"driver": "GTiff",

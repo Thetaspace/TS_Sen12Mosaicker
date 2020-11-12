@@ -9,6 +9,7 @@ import zipfile
 import logging
 import glob
 from src.Processor import Processor
+import numpy as np
 
 logger = logging.getLogger('S1ProcessorLogger')
 logging.basicConfig(level=logging.INFO)
@@ -46,10 +47,12 @@ class S1Processor(Processor):
 
     def get_meta(self):
         for i in range(len(self.safe_folders)):
-            modestamp = self.safe_folders[i].split("_")[1]
-            productstamp = self.safe_folders[i].split("_")[2]
-            polstamp = self.safe_folders[i].split("_")[3]
+            only_safe_folder = os.path.basename(self.safe_folders[i])
+            modestamp = only_safe_folder.split("_")[1]
+            productstamp = only_safe_folder.split("_")[2]
+            polstamp = only_safe_folder.split("_")[3]
             polarization = polstamp[2:4]
+
             self.polarizations.append(polarization)
 
             if polarization == 'DV':
@@ -75,12 +78,7 @@ class S1Processor(Processor):
         logger.info('\tCalibration')
         parameters = HashMap()
         parameters.put('outputSigmaBand', True)
-        parameters.put('selectedPolarisations', pol)
-        parameters.put('outputImageScaleInDb', False)
-        parameters.put('auxFile', 'Product Auxiliary File')
-        parameters.put('outputImageInComplex', False)
-        parameters.put('outputGammaBand', False)
-        parameters.put('outputBetaBand', False)
+
         if polarization == 'DH':
             parameters.put('sourceBands', 'Intensity_HH,Intensity_HV')
         elif polarization == 'DV':
@@ -92,6 +90,12 @@ class S1Processor(Processor):
         else:
             logger.info("Unknown polarization")
 
+        parameters.put('selectedPolarisations', pol)
+        parameters.put('outputImageScaleInDb', False)
+        parameters.put('auxFile', 'Product Auxiliary File')
+        parameters.put('outputImageInComplex', False)
+        parameters.put('outputGammaBand', False)
+        parameters.put('outputBetaBand', False)
         output = GPF.createProduct("Calibration", parameters, source)
         return output
 
@@ -145,7 +149,7 @@ class S1Processor(Processor):
         self.get_meta()
 
         for i, safe_folder in enumerate(self.safe_folders):
-
+       
             scene = ProductIO.readProduct(safe_folder + '/manifest.safe')   
             applyorbit = self.apply_orbit_file(scene)
             thermaremoved = self.remove_thermal_noise(applyorbit)
@@ -160,4 +164,6 @@ class S1Processor(Processor):
 
             output_path = os.path.join(self.zips_path, self.basenames[i]) + '_VV_VH_dB.tif'
             ProductIO.writeProduct(scaled_db, output_path, 'GeoTIFF-BigTIFF')
+            scene.dispose()
+            scene.closeIO()
             self.paths_to_merge.append(output_path)
