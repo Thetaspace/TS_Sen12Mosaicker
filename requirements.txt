@@ -3,7 +3,7 @@ snappy
 numpy
 pandas
 geopandas
-yaml
+PyYaml
 glob3
 rasterio
 shapely
