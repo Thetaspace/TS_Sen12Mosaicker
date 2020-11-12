@@ -3,7 +3,7 @@ import shutil
 from src.utils import merge_rasters
 import numpy as np
 
-class Processor():
+class Processor(object):
     def __init__(self, zips_path, footprint):
         self.zips_path = zips_path
         self.footprint = footprint
