@@ -8,7 +8,7 @@ import os
 import zipfile
 import logging
 import glob
-from src.Processor as Processor
+from src.Processor import Processor
 
 logger = logging.getLogger('S1ProcessorLogger')
 logging.basicConfig(level=logging.INFO)
