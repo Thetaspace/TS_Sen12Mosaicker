@@ -25,10 +25,10 @@ class Processor(object):
             if len(self.paths_to_merge) > 1:
                 for key in self.paths_to_merge[0].keys():
                     list_bands_to_merge = group_lambda(self.paths_to_merge, key)
-                    file_string = '{0}_'.format(key) + file_string
-                    merge_rasters(list_bands_to_merge, output_folder, file_string, self.dtype)
+                    file_string2 = '{0}_'.format(key) + file_string
+                    merge_rasters(list_bands_to_merge, output_folder, file_string2, self.dtype)
 
             elif len(self.paths_to_merge) == 1:
                 for key in self.paths_to_merge[0].keys():
-                    file_string = '{0}_'.format(key) + file_string
-                    shutil.copy(self.paths_to_merge[0][key], output_folder + '/{0}.tif'.format(file_string))
+                    file_string2 = '{0}_'.format(key) + file_string
+                    shutil.copy(self.paths_to_merge[0][key], output_folder + '/{0}.tif'.format(file_string2))
