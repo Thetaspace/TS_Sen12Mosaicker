@@ -21,7 +21,7 @@
 import logging
 from Sen12Mosaicker import Sen12Mosaicker
 import glob
-#from src.S1Processor import S1Processor
+from src.S1Processor import S1Processor
 from src.S2Processor import S2Processor
 
 logger = logging.getLogger('MainLogger')
@@ -54,12 +54,12 @@ def main():
   s1_folders = glob.glob(mosaicker.output_folder + '/*/S1')
   s2_folders = glob.glob(mosaicker.output_folder + '/*/S2')
   
-  for i in len(s2_folders):
-    s1_proc = S1Processor(s1_folders[i], self.footprint)
+  for i in range(len(s2_folders)):
+    s1_proc = S1Processor(s1_folders[i], mosaicker.footprint)
     s1_proc.process() # the "process" method runs the complete workflow: raster processing, clipping, mosaicking, readings and writings... 
                       # but of course each step can be executed individually e.g. s1_proc.unzip() or s2_proc.clip_all_to_aoi()  etc. 
 
-    s2_proc = S2Processor(s2_folders[i], self.footprint)
+    s2_proc = S2Processor(s2_folders[i], mosaicker.footprint)
     s2_proc.process()
 
     
