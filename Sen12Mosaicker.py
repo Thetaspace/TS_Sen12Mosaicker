@@ -42,8 +42,6 @@ import yaml
 from src.utils import *
 import os
 import glob
-from src.S1Processor import S1Processor
-from src.S2Processor import S2Processor
 
 logger = logging.getLogger('LoggerS12Mosaicker')
 logging.basicConfig(level=logging.INFO)
@@ -90,7 +88,7 @@ class Sen12Mosaicker():
         for i in range(len(self.ts_intervals)):    #len(self.ts_intervals = len(product_chunks))
           
           if (not products_chunks_s1[i].empty) and (not products_chunks_s2[i].empty):
-            s2_coverage, s1_coverage = get_complete_coverage_of_AOI(products=products_chunks_s2[i], aoi_fp=self.footprint, logger=logger), get_complete_coverage_of_AOI(products=products_chunks_s1[i], aoi_fp=self.footprint, logger=logger)
+            s2_coverage, s1_coverage = get_complete_coverage_of_AOI(products=products_chunks_s2[i], aoi_fp=self.footprint, logger=logger, min_coverage=self.min_coverage), get_complete_coverage_of_AOI(products=products_chunks_s1[i], aoi_fp=self.footprint, logger=logger, min_coverage=self.min_coverage)
             
             if not isinstance(s2_coverage[-1],str):
               self.list_ts_pairs.append((self.ts_intervals[i],s2_coverage, s1_coverage))

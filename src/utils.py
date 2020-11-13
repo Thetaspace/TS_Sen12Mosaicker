@@ -95,7 +95,7 @@ def get_sorted_scenes_by_intersection_aoi(products, aoi_fp):
         return products.sort_values(['intersection_AOI'], ascending=False)
 
 
-def get_complete_coverage_of_AOI(products, aoi_fp, logger, aoi_area=None, max_coverage=0.90):
+def get_complete_coverage_of_AOI(products, aoi_fp, logger, aoi_area=None, min_coverage=0.90):
     
     if aoi_area is None:
         aoi = shapely.wkt.loads(aoi_fp)
@@ -112,14 +112,14 @@ def get_complete_coverage_of_AOI(products, aoi_fp, logger, aoi_area=None, max_co
 
     if intersection_area == 0:
         logger.info('the whole area could not be fully covered. Scenes are missing!')
-        return []
+        return ['incomplete']
 
-    elif left_over_area.area < (1-max_coverage) * aoi_area:
+    elif left_over_area.area < (1-min_coverage) * aoi_area:
         return [top_scene]
     else:
         logger.info('Looking for more scenes. Non covered area percentage until now = {0}%'.format(float((left_over_area.area/aoi_area))))
         new_aoi_fp = left_over_area.to_wkt()
-        return [top_scene] + get_complete_coverage_of_AOI(products=products, aoi_fp=new_aoi_fp, logger=logger, aoi_area=aoi_area)
+        return [top_scene] + get_complete_coverage_of_AOI(products=products, aoi_fp=new_aoi_fp, logger=logger, aoi_area=aoi_area, min_coverage=min_coverage)
 
 
 def chunk_dates(min_date, max_date, days):
