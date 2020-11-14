@@ -23,7 +23,7 @@ from Sen12Mosaicker import Sen12Mosaicker
 import glob
 from src.S1Processor import S1Processor
 from src.S2Processor import S2Processor
-from src.utils import crop_to_smallest
+from src.utils import clip_to_smallest
 
 logger = logging.getLogger('MainLogger')
 logging.basicConfig(level=logging.INFO)
