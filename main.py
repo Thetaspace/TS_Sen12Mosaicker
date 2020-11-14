@@ -23,6 +23,7 @@ from Sen12Mosaicker import Sen12Mosaicker
 import glob
 from src.S1Processor import S1Processor
 from src.S2Processor import S2Processor
+from src.utils import crop_to_smallest
 
 logger = logging.getLogger('MainLogger')
 logging.basicConfig(level=logging.INFO)
@@ -62,7 +63,14 @@ def main():
     s2_proc = S2Processor(s2_folders[i], mosaicker.footprint)
     s2_proc.process()
 
-    
+
+  # DUE to different subsetting algorithms while processing S1 and S2
+  # Discrepancy between extents might SOMETIMES require further post-processing
+  # following step will cure it
+  s1_ = glob.glob(mosaicker.output_folder + '/*S1.tif')[0]
+  s2_list = glob.glob(mosaicker.output_folder + '/*S2.tif')
+
+  clip_all_to_smallest(s1, s2_list)
 
 
 if __name__ == "__main__":

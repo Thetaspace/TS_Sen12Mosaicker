@@ -143,7 +143,12 @@ def get_products_chunks(products_df, ts_intervals):
         ts_products_lists.append(products_df[(products_df['beginposition']<=max_date) & (products_df['beginposition']>=min_date)])
     return ts_products_lists
 
-
+def get_min_bbox(bbox1, bbox2):
+    max_left = max(bbox1[0], bbox2[0])
+    max_top = max(bbox1[1], bbox2[1])
+    min_right = min(bbox1[2], bbox2[2])
+    min_bottom = min(bbox1[3], bbox2[3])
+    return box(max_left, max_top, min_right, min_bottom)
 
 def getFeatures(gdf):
     """Function to parse features from GeoDataFrame in such a manner that rasterio wants them"""
@@ -192,3 +197,43 @@ def merge_rasters(list_clipped_rasters_paths, output_folder, suffix, dtype):
     print(output_path)
     with rasterio.open(output_path, 'w', **out_meta) as dst:
         dst.write(rec.astype(dtype))   
+
+
+
+def clip_to_smallest(s1, s2_list):
+    s1_ds = rasterio.open(s1)
+    s2_ds = rasterio.open(s2_list[0]) #as the rest of the bands have the same extent pick up the first band available
+    
+    s1_box = s1_ds.bounds
+    s2_box = s2_ds.bounds
+    
+    intersec_bbox = get_min_bbox(s2_box, s1_box)
+    
+    # first get s1 transform and minimum heights and widths
+    s1_clip, s1_transform = mask(s1_ds, shapes=[intersec_bbox], all_touched=False, crop=True)
+    s2_clip, s2_transform = mask(s2_ds, shapes=[intersec_bbox], all_touched=False, crop=True)
+    s1_meta = s1_ds.meta.copy()
+    s2_meta = s2_ds.meta.copy()
+    s1_ds.close()
+    s2_ds.close() #will be opened again.. not very bad but it is slightly sub-optimal
+    
+    min_H, min_W = min(s1_clip.shape[1], s2_clip.shape[1]), min(s1_clip.shape[2], s2_clip.shape[2])
+    s1_meta.update({'transform': s1_transform,
+                   'height': min_H,
+                   'width': min_W})
+    
+    # overwriting tif files
+    with rasterio.open(s1, 'w', **s1_meta) as dst:
+        dst.write(s1_clip[:,:min_H, :min_W])
+
+    for s2 in s2_list:
+        s2_ds = rasterio.open(s2)
+        s2_clip, s2_transform = mask(s2_ds, shapes=[intersec_bbox], all_touched=False, crop=True)
+        # has to be here again just in case TCI (which has 3 bands) must be processed too
+        s2_meta = s2_ds.meta.copy()
+        s2_meta.update({'transform': s2_transform,
+               'height': min_H,
+               'width': min_W})
+        # save file
+        with rasterio.open(s2, 'w', **s2_meta) as dst:
+            dst.write(s2_clip[:,:min_H, :min_W])
