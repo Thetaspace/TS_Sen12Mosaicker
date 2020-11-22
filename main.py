@@ -20,6 +20,7 @@
 
 import logging
 from Sen12Mosaicker import Sen12Mosaicker
+import os
 import glob
 from src.S1Processor import S1Processor
 from src.S2Processor import S2Processor
@@ -66,10 +67,10 @@ def main():
     # DUE to different subsetting algorithms while processing S1 and S2
     # Discrepancy between extents might SOMETIMES require further post-processing
     # following step will cure it
-    s2_list = glob.glob(s1_folders[i] + '../*S2.tif')
+    s2_list = glob.glob(os.path.join(s1_folders[i], '../*S2.tif'))
     if len(s2_list)>0:
-      s1_ = glob.glob(s2_folders[i] + '../*S1.tif')[0]
-      clip_all_to_smallest(s1, s2_list)
+      s1_ = glob.glob(os.path.join(s2_folders[i],'../*S1.tif'))[0]
+      clip_to_smallest(s1_, s2_list)
 
 
 if __name__ == "__main__":
