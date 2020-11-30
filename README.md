@@ -6,7 +6,7 @@ It will make sure to download the absolute minimum data necessary to form the mo
 
 ## Flowchart
 
-![alt text](https://github.com/[Thetaspace]/[TS_Sen12Mosaicker]/blob/[master]/ts_mosaicker.png?raw=true)
+![Flowchart](https://github.com/Thetaspace/TS_Sen12Mosaicker/blob/master/ts_mosaicker.png?raw=true)
 
 ## Absolute Minimum Data to Download
 
