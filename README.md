@@ -43,7 +43,7 @@ python main.py
 
 
 ## Contributing
-Bug? open a new issue! You have a question or a suggestion? reach us! Even better:  
+Bug? open a new issue! You have a question or a suggestion? reach us! Even better:
 create a Pull request! For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
