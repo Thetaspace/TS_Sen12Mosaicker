@@ -1,6 +1,9 @@
 sentinelsat
 snappy
+numpy
 pandas
-yaml
+geopandas
+PyYaml
 glob3
+rasterio
 shapely

@@ -1,6 +1,7 @@
 #!/usr/bin/python
 #-*- coding: utf-8 -*-
 
+
 from sentinelsat import SentinelAPI, read_geojson, geojson_to_wkt
 from datetime import date
 import datetime
@@ -11,6 +12,16 @@ import yaml
 
 import shapely
 from shapely.wkt import loads
+
+import numpy as np
+import rasterio
+from rasterio.mask import mask
+from rasterio.merge import merge
+import geopandas as gpd
+from shapely.geometry import box
+
+import rasterio
+from rasterio.warp import reproject, calculate_default_transform as cdt, Resampling
 
 def authenticate_oah(creds_json):
     """
@@ -87,7 +98,7 @@ def get_sorted_scenes_by_intersection_aoi(products, aoi_fp):
         return products.sort_values(['intersection_AOI'], ascending=False)
 
 
-def get_complete_coverage_of_AOI(products, aoi_fp, logger, aoi_area=None, max_coverage=0.90):
+def get_complete_coverage_of_AOI(products, aoi_fp, logger, aoi_area=None, min_coverage=0.90):
     
     if aoi_area is None:
         aoi = shapely.wkt.loads(aoi_fp)
@@ -104,14 +115,14 @@ def get_complete_coverage_of_AOI(products, aoi_fp, logger, aoi_area=None, max_co
 
     if intersection_area == 0:
         logger.info('the whole area could not be fully covered. Scenes are missing!')
-        return []
+        return ['incomplete']
 
-    elif left_over_area.area < (1-max_coverage) * aoi_area:
+    elif left_over_area.area < (1-min_coverage) * aoi_area:
         return [top_scene]
     else:
         logger.info('Looking for more scenes. Non covered area percentage until now = {0}%'.format(float((left_over_area.area/aoi_area))))
         new_aoi_fp = left_over_area.to_wkt()
-        return [top_scene] + get_complete_coverage_of_AOI(products=products, aoi_fp=new_aoi_fp, logger=logger, aoi_area=aoi_area)
+        return [top_scene] + get_complete_coverage_of_AOI(products=products, aoi_fp=new_aoi_fp, logger=logger, aoi_area=aoi_area, min_coverage=min_coverage)
 
 
 def chunk_dates(min_date, max_date, days):
@@ -134,3 +145,140 @@ def get_products_chunks(products_df, ts_intervals):
     for (min_date, max_date) in ts_intervals:
         ts_products_lists.append(products_df[(products_df['beginposition']<=max_date) & (products_df['beginposition']>=min_date)])
     return ts_products_lists
+
+def get_min_bbox(bbox1, bbox2):
+    max_left = max(bbox1[0], bbox2[0])
+    max_top = max(bbox1[1], bbox2[1])
+    min_right = min(bbox1[2], bbox2[2])
+    min_bottom = min(bbox1[3], bbox2[3])
+    return box(max_left, max_top, min_right, min_bottom)
+
+def getFeatures(gdf):
+    """Function to parse features from GeoDataFrame in such a manner that rasterio wants them"""
+    import json
+    return [json.loads(gdf.to_json())['features'][0]['geometry']]
+
+def clip_to_aoi(path_jp2, footprint):
+    ConvertRaster2LatLong(path_jp2, path_jp2)
+    dataset = rasterio.open(path_jp2)
+    fp = shapely.wkt.loads(footprint)
+    
+    # create new footprint from the intersection of raster and footprint
+    dataset_bbox = dataset.bounds
+    geo_dataset = gpd.GeoDataFrame({'geometry': box(dataset_bbox[0], dataset_bbox[1], dataset_bbox[2], dataset_bbox[3])}, index=[0], crs=dataset.crs)
+
+    geo_fp = gpd.GeoDataFrame({'geometry': box(fp.bounds[0],fp.bounds[1],fp.bounds[2],fp.bounds[3])}, index=[0], crs={'init':'epsg:4326'})
+
+    coords = getFeatures(geo_dataset.intersection(geo_fp))
+
+    _,g_rect = mask(dataset, coords, all_touched=True, crop=True)
+    windo = rasterio.features.geometry_window(dataset, coords)
+    rect = dataset.read(window=windo)
+    
+    out_meta = dataset.meta.copy()
+    out_meta.update({"driver": "GTiff",
+            "height": rect.shape[1],
+            "width": rect.shape[2],
+            "transform": g_rect,
+            "dtype":"uint16"}
+        )
+    output_path = path_jp2[:-4] + '_clipped.tif'
+    with rasterio.open(output_path, 'w', **out_meta) as dst:
+        dst.write(rect.astype(np.uint16))      
+    return output_path
+
+
+def merge_rasters(list_clipped_rasters_paths, output_folder, suffix, dtype):
+
+    rec, rec_g = merge(list_clipped_rasters_paths)
+    out_meta = rasterio.open(list_clipped_rasters_paths[0]).meta.copy()
+    out_meta.update({"driver": "GTiff",
+            "height": rec.shape[1],
+            "width": rec.shape[2],
+            "transform": rec_g,
+            "dtype": dtype})
+    
+    output_path = output_folder + '/Mosaic_{0}.tif'.format(suffix)
+    print(output_path)
+    with rasterio.open(output_path, 'w', **out_meta) as dst:
+        dst.write(rec.astype(dtype))   
+
+
+
+def clip_to_smallest(s1, s2_list):
+    s1_ds = rasterio.open(s1)
+    s2_ds = rasterio.open(s2_list[0]) #as the rest of the bands have the same extent pick up the first band available
+    
+    s1_box = s1_ds.bounds
+    s2_box = s2_ds.bounds
+    
+    intersec_bbox = get_min_bbox(s2_box, s1_box)
+    
+    # first get s1 transform and minimum heights and widths
+    s1_clip, s1_transform = mask(s1_ds, shapes=[intersec_bbox], all_touched=False, crop=True)
+    s2_clip, s2_transform = mask(s2_ds, shapes=[intersec_bbox], all_touched=False, crop=True)
+    s1_meta = s1_ds.meta.copy()
+    s2_meta = s2_ds.meta.copy()
+    s1_ds.close()
+    s2_ds.close() #will be opened again.. not very bad but it is slightly sub-optimal
+    
+    min_H, min_W = min(s1_clip.shape[1], s2_clip.shape[1]), min(s1_clip.shape[2], s2_clip.shape[2])
+    s1_meta.update({'transform': s1_transform,
+                   'height': min_H,
+                   'width': min_W})
+    
+    # overwriting tif files
+    with rasterio.open(s1, 'w', **s1_meta) as dst:
+        dst.write(s1_clip[:,:min_H, :min_W])
+
+    for s2 in s2_list:
+        s2_ds = rasterio.open(s2)
+        s2_clip, s2_transform = mask(s2_ds, shapes=[intersec_bbox], all_touched=False, crop=True)
+        # has to be here again just in case TCI (which has 3 bands) must be processed too
+        s2_meta = s2_ds.meta.copy()
+        s2_meta.update({'transform': s2_transform,
+               'height': min_H,
+               'width': min_W})
+        # save file
+        with rasterio.open(s2, 'w', **s2_meta) as dst:
+            dst.write(s2_clip[:,:min_H, :min_W])
+
+
+def ConvertRaster2LatLong(InputRasterFile,OutputRasterFile):
+
+    """
+    Convert a raster to lat long WGS1984 EPSG:4326 coordinates for global plotting
+
+    MDH
+    
+    source: LSDtopotools: https://github.com/LSDtopotools/LSDMappingTools
+
+    """
+
+    # read the source raster
+    with rasterio.open(InputRasterFile) as src:
+        #get input coordinate system
+        Input_CRS = src.crs
+        # define the output coordinate system
+        Output_CRS = {'init': "epsg:4326"}
+        # set up the transform
+        Affine, Width, Height = cdt(Input_CRS,Output_CRS,src.width,src.height,*src.bounds)
+        kwargs = src.meta.copy()
+        kwargs.update({
+            'crs': Output_CRS,
+            'transform': Affine,
+            'affine': Affine,
+            'width': Width,
+            'height': Height
+        })
+
+        with rasterio.open(OutputRasterFile, 'w', **kwargs) as dst:
+            for i in range(1, src.count+1):
+                reproject(
+                    source=rasterio.band(src, i),
+                    destination=rasterio.band(dst, i),
+                    src_transform=src.transform,
+                    src_crs=src.crs,
+                    dst_transform=Affine,
+                    dst_crs=Output_CRS,
+                    resampling=Resampling.bilinear) 

@@ -2,7 +2,7 @@
 
 OUTPUT_FOLDER: 'output_data' # will contain downloaded and processed files
 FOOTPRINT: 'map.geojson' # should contain the footprint of the AOI
-OAH_CREDS: 'creds.json' #should contain the Copernicus Open Access Hub login credentials
+OAH_CREDS: 'OAH_creds.json' #should contain the Copernicus Open Access Hub login credentials
 
 min_coverage: 0.99 # minimum percentage of the area of interest that MUST be covered
 
@@ -15,6 +15,6 @@ S1:
   producttype: 'GRD'
   
 DATE:
-  min_date: "20191101"
-  max_date: "20201101"
-  ts_interval: 14 #in days 
+  min_date: "20181101"
+  max_date: "20201112"
+  ts_interval: 15 #in days 
