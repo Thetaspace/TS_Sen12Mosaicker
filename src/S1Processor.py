@@ -110,7 +110,7 @@ class S1Processor(Processor):
         parameters = HashMap()
         parameters.put('demName', 'SRTM 3Sec')
         parameters.put('imgResamplingMethod', 'BILINEAR_INTERPOLATION')
-        parameters.put('mapProjection', 'AUTO:42001')       # comment this line if no need to convert to UTM/WGS84, default is WGS84
+        #parameters.put('mapProjection', 'AUTO:42001')       # comment this line if no need to convert to UTM/WGS84, default is WGS84
         parameters.put('saveProjectedLocalIncidenceAngle', True)
         parameters.put('saveSelectedSourceBand', True)
         parameters.put('pixelSpacingInMeter', 10.0)
