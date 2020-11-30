@@ -13,7 +13,7 @@ It will make sure to download the absolute minimum data necessary to form the mo
 
 ## Installation
 
-clone the repository to your local.
+Clone the repository to your local.
 
 ```bash
 git clone https://github.com/Thetaspace/TS_Sen12Mosaicker.git
