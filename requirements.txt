@@ -5,5 +5,5 @@ pandas
 geopandas
 PyYaml
 glob3
-rasterio
 shapely
+rasterio
