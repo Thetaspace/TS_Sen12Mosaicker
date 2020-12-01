@@ -1,5 +1,7 @@
 # Time Series Mosaicker for Sentinel-1 and 2 
 
+![Germany - Poland](https://github.com/Thetaspace/TS_Sen12Mosaicker/blob/master/s1s2.gif?raw=true)
+
 This program will, for any given area of interest (AOI), download and create sentinel-1 and 2 mosaics for one or many time intervals.
 
 It will make sure to download **only the absolute minimum data necessary** to form the mosaics! S1 and S2 images will **perfectly match** on the same grid.
