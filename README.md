@@ -2,13 +2,11 @@
 
 This program will, for any given area of interest (AOI), download and create sentinel-1 and 2 mosaics for one or many time intervals.
 
-It will make sure to download the absolute minimum data necessary to form the mosaics!
+It will make sure to download **only the absolute minimum data necessary** to form the mosaics! S1 and S2 images will **perfectly match** on the same grid.
 
 ## Flowchart
 
 ![Flowchart](https://github.com/Thetaspace/TS_Sen12Mosaicker/blob/master/ts_mosaicker.png?raw=true)
-
-## Absolute Minimum Data to Download
 
 
 ## Installation
