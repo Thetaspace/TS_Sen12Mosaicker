@@ -203,47 +203,6 @@ def merge_rasters(list_clipped_rasters_paths, output_folder, suffix, dtype):
     with rasterio.open(output_path, 'w', **out_meta) as dst:
         dst.write(rec.astype(dtype))   
 
-
-
-def clip_to_smallest(s1, s2_list):
-    s1_ds = rasterio.open(s1)
-    s2_ds = rasterio.open(s2_list[0]) #as the rest of the bands have the same extent pick up the first band available
-    
-    s1_box = s1_ds.bounds
-    s2_box = s2_ds.bounds
-    
-    intersec_bbox = get_min_bbox(s2_box, s1_box)
-    
-    # first get s1 transform and minimum heights and widths
-    s1_clip, s1_transform = mask(s1_ds, shapes=[intersec_bbox], all_touched=False, crop=True)
-    s2_clip, s2_transform = mask(s2_ds, shapes=[intersec_bbox], all_touched=False, crop=True)
-    s1_meta = s1_ds.meta.copy()
-    s2_meta = s2_ds.meta.copy()
-    s1_ds.close()
-    s2_ds.close() #will be opened again.. not very bad but it is slightly sub-optimal
-    
-    min_H, min_W = min(s1_clip.shape[1], s2_clip.shape[1]), min(s1_clip.shape[2], s2_clip.shape[2])
-    s1_meta.update({'transform': s1_transform,
-                   'height': min_H,
-                   'width': min_W})
-    
-    # overwriting tif files
-    with rasterio.open(s1, 'w', **s1_meta) as dst:
-        dst.write(s1_clip[:,:min_H, :min_W])
-
-    for s2 in s2_list:
-        s2_ds = rasterio.open(s2)
-        s2_clip, s2_transform = mask(s2_ds, shapes=[intersec_bbox], all_touched=False, crop=True)
-        # has to be here again just in case TCI (which has 3 bands) must be processed too
-        s2_meta = s2_ds.meta.copy()
-        s2_meta.update({'transform': s2_transform,
-               'height': min_H,
-               'width': min_W})
-        # save file
-        with rasterio.open(s2, 'w', **s2_meta) as dst:
-            dst.write(s2_clip[:,:min_H, :min_W])
-
-
 def ConvertRaster2LatLong(InputRasterFile,OutputRasterFile):
 
     """
@@ -282,3 +241,19 @@ def ConvertRaster2LatLong(InputRasterFile,OutputRasterFile):
                     dst_transform=Affine,
                     dst_crs=Output_CRS,
                     resampling=Resampling.bilinear) 
+
+def post_proc(s1_path, s2_path):
+    s2_r = rasterio.open(s2_path)
+    
+    s2_meta = s2_r.meta.copy()
+    s2_meta.update({'count': 2,
+               'dtype': 'float32'})
+    s2_r.close()
+
+    s1_r = rasterio.open(s1_path)
+    s1_ar = s1_r.read()
+    s1_r.close()
+
+    with rasterio.open(s1_path, 'w', **s2_meta) as ff:
+        ff.write(s1_ar)
+    return
