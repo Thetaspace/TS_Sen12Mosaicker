@@ -64,14 +64,12 @@ def main():
     s2_proc = S2Processor(s2_folders[i], mosaicker.footprint)
     s2_proc.process()
 
-    # DUE to different subsetting algorithms while processing S1 and S2
-    # Discrepancy between extents might SOMETIMES require further post-processing
-    # following step will cure it
-    s2_list = glob.glob(os.path.join(s1_folders[i], '../*S2.tif'))
-    if len(s2_list)>0:
-      s1_ = glob.glob(os.path.join(s2_folders[i],'../*S1.tif'))[0]
-      clip_to_smallest(s1_, s2_list)
+    # Discrepancy between S1 and S2 extents require further post-processing
+    # following step has until now always cured it
+    s1_ = glob.glob(os.path.join(s2_folders[i],'../*S1.tif'))[0]
+    s2_ = glob.glob(os.path.join(s2_folders[i],'../blue*S2.tif'))[0]
 
+    post_proc(s1_, s2_)
 
 if __name__ == "__main__":
     main()
