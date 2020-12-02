@@ -4,6 +4,6 @@ numpy
 pandas
 geopandas
 PyYaml
-glob3
+glob2
 shapely
 rasterio
