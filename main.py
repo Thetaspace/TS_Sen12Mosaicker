@@ -67,7 +67,7 @@ def main():
     # Discrepancy between S1 and S2 extents require further post-processing
     # following step has until now always cured it
     s1_ = glob.glob(os.path.join(s2_folders[i],'../*S1.tif'))[0]
-    s2_ = glob.glob(os.path.join(s2_folders[i],'../blue*S2.tif'))[0]
+    s2_ = glob.glob(os.path.join(s2_folders[i],'../*S2.tif'))[0]
 
     post_proc(s1_, s2_)
 
