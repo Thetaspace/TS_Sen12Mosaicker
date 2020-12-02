@@ -114,10 +114,15 @@ class Sen12Mosaicker():
       os.mkdir(folder_path + '/S2')
       
       for s2 in s2_list:
-        self.api.download(s2['uuid'], folder_path + '/S2')
+        try:
+          self.api.download(s2['uuid'], folder_path + '/S2')
+        except:
+          continue
       for s1 in s1_list:
-        self.api.download(s1['uuid'], folder_path + '/S1')
-
+        try:
+          self.api.download(s1['uuid'], folder_path + '/S1')
+        except:
+          continue
 
 
 
