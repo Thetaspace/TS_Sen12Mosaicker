@@ -24,7 +24,11 @@ pip install -r requirements.txt
 ```
 or (recommended) just use the Dockerfile to build the docker image with everything you need.
 ```bash
-docker build --tag sen12mosaicker
+docker build . --tag sen12mosaicker
+```
+Then run it interactively.
+```bash
+docker run -it sen12mosaicker
 ```
 
 ## Usage
