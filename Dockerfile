@@ -41,6 +41,8 @@ RUN ln -s /root/.snap/snap-python/snappy /usr/lib/python2.7/dist-packages/snappy
 #WORKDIR /python-app
 #RUN python -m pip install --user -r requirements.txt
 
+# update snap
+RUN snap --nosplash --nogui --modules --update-all
 
 # clone the TS_Sen12Mosaicker repository, set workdir and install python dependencies
 RUN git clone https://github.com/Thetaspace/TS_Sen12Mosaicker.git
