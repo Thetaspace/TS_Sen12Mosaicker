@@ -31,7 +31,7 @@ def authenticate_oah(creds_json):
         creds = json.load(f)['credentials']
         username = creds['username']
         password = creds['password']
-        api = SentinelAPI(username, password)
+        api = SentinelAPI(username, password, 'https://apihub.copernicus.eu/apihub/')
     return api
 
 def geojson_to_footprint(geojson_file):
